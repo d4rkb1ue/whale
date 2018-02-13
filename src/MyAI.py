@@ -19,33 +19,52 @@
 
 from Agent import Agent
 
-class MyAI ( Agent ):
+class MyAI (Agent):
 
-    def __init__ ( self ):
-        # ======================================================================
-        # YOUR CODE BEGINS
-        # ======================================================================
+    def __init__(self):
+        self.finished = False
+        self.todo = []
+        self.x = 1
         
-        pass
-        # ======================================================================
-        # YOUR CODE ENDS
-        # ======================================================================
 
-    def getAction( self, stench, breeze, glitter, bump, scream ):
-        # ======================================================================
-        # YOUR CODE BEGINS
-        # ======================================================================
+    __actions = [
+        Agent.Action.TURN_LEFT,
+        Agent.Action.TURN_RIGHT,
+        Agent.Action.FORWARD,
+        Agent.Action.CLIMB,
+        Agent.Action.SHOOT,
+        Agent.Action.GRAB
+    ]
+
+    def finish(self):
+        self.finished = True
+        self.todo.append(Agent.Action.CLIMB)
+        while self.x > 1:
+            self.x -= 1
+            self.todo.append(Agent.Action.FORWARD)
+        self.todo.append(Agent.Action.TURN_LEFT)
+        self.todo.append(Agent.Action.TURN_LEFT)
+
+
+    def getAction(self, stench, breeze, glitter, bump, scream):
+        if len(self.todo) > 0:
+            return self.todo.pop()
+
+        if self.x == 1 and (stench or breeze):
+            return Agent.Action.CLIMB
         
-        return Agent.Action.CLIMB
-        # ======================================================================
-        # YOUR CODE ENDS
-        # ======================================================================
-    
-    # ======================================================================
-    # YOUR CODE BEGINS
-    # ======================================================================
+        if bump:
+            self.x -= 1
+            self.finish()
+            return self.todo.pop()
 
-    
-    # ======================================================================
-    # YOUR CODE ENDS
-    # ======================================================================
+        if glitter:
+            self.finish()
+            return Agent.Action.GRAB
+        
+        if stench or breeze:
+            self.finish()
+            return self.todo.pop()
+        else:
+            self.x += 1
+            return Agent.Action.FORWARD
