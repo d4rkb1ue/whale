@@ -22,7 +22,7 @@ from Agent import Agent
 class MyAI (Agent):
 
     def __init__(self):
-        self.finished = False
+        self.finishX = False
         self.todo = []
         self.x = 1
         
@@ -38,7 +38,11 @@ class MyAI (Agent):
 
     def finish(self):
         self.finished = True
-        self.todo.append(Agent.Action.CLIMB)
+        if self.finishX:
+            self.todo.append(Agent.Action.CLIMB)
+        else:
+            self.finishX = True
+            self.todo.append(Agent.Action.TURN_RIGHT)
         while self.x > 1:
             self.x -= 1
             self.todo.append(Agent.Action.FORWARD)
