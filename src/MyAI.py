@@ -25,30 +25,23 @@ class MyAI (Agent):
         self.finishX = False
         self.todo = []
         self.x = 1
+        self.shooted = False
+        self.killed = False
         
-
-    __actions = [
-        Agent.Action.TURN_LEFT,
-        Agent.Action.TURN_RIGHT,
-        Agent.Action.FORWARD,
-        Agent.Action.CLIMB,
-        Agent.Action.SHOOT,
-        Agent.Action.GRAB
-    ]
-
     def finish(self):
         self.finished = True
         if self.finishX:
             self.todo.append(Agent.Action.CLIMB)
         else:
+            # go up
             self.finishX = True
             self.todo.append(Agent.Action.TURN_RIGHT)
+
         while self.x > 1:
             self.x -= 1
             self.todo.append(Agent.Action.FORWARD)
         self.todo.append(Agent.Action.TURN_LEFT)
         self.todo.append(Agent.Action.TURN_LEFT)
-
 
     def getAction(self, stench, breeze, glitter, bump, scream):
         if len(self.todo) > 0:
@@ -62,13 +55,21 @@ class MyAI (Agent):
             self.finish()
             return self.todo.pop()
 
+        if scream:
+            self.killed = True
+
         if glitter:
             self.finish()
             return Agent.Action.GRAB
-        
-        if stench or breeze:
+
+        if (stench and not self.killed) or breeze:
+            if stench and not self.shooted:
+                self.shooted = True
+                return Agent.Action.SHOOT
+
             self.finish()
             return self.todo.pop()
         else:
+            # go straight
             self.x += 1
             return Agent.Action.FORWARD
