@@ -31,6 +31,7 @@ class MyAI (Agent):
         self.visited = set()
         self.danger = set()
         self.safe = set()
+        self.bound = set()
         self.stack = []
 
     def goTo(self, des):
@@ -47,39 +48,55 @@ class MyAI (Agent):
         par = dict()
         found = False
 
-        que.append((self.x, self.y))
+        que.append((self.x, self.y, self.toward))
 
         while len(que) > 0:
             cur = que.popleft()
-            if cur == des:
-                found = True
+            loc = (cur[0], cur[1])
+            if loc == des:
+                found = cur
                 break
 
             vis.add(cur)
             x = cur[0]
             y = cur[1]
+            t = cur[2]
             
             ar = []
-            if x > 0:
-                ar.append((x - 1, y))
-            if y > 0:
-                ar.append((x, y - 1))
-            if y < 6:
-                ar.append((x, y + 1))
-            if x < 6:
-                ar.append((x + 1, y))
+            if x > 0 and t == 9:
+                ar.append((x - 1, y, t))
+            if y > 0 and t == 6:
+                ar.append((x, y - 1, t))
+            if y < 6 and t == 12:
+                ar.append((x, y + 1, t))
+            if x < 6 and t == 3:
+                ar.append((x + 1, y, t))
+            if t == 3:
+                ar.append((x, y, 12))
+            else:
+                ar.append((x, y, t - 3))
+            if t == 12:
+                ar.append((x, y, 3))
+            else:
+                ar.append((x, y, t + 3))
+
             for i in ar:
-                if (i in self.visited or i in self.safe) and i not in vis and i not in que:
+                loc = (i[0], i[1])
+                if (loc in self.visited or loc in self.safe) \
+                    and loc not in self.bound \
+                    and i not in vis \
+                    and i not in que:
+
                     que.append(i)
                     par[i] = cur
             
         if not found:
-            # print("[error] no path from", self.x, self.y, "to", des[0], des[1])
+            print("[error] no path from", self.x, self.y, "to", des[0], des[1])
             exit()
         
         # construct path
-        path = [des]
-        cur = des
+        path = [found]
+        cur = found
         while cur in par:
             path.append(par[cur])
             cur = par[cur]
@@ -91,51 +108,34 @@ class MyAI (Agent):
         # construct actions
         x = self.x
         y = self.y
-        twd = self.toward
-        for (nx, ny) in path:
-            if nx > x:
-                if twd == 6:
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                elif twd == 9:
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                elif twd == 12:
-                    self.todo.append(Agent.Action.TURN_RIGHT)
-                twd = 3
-            elif nx < x:
-                if twd == 3:
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                elif twd == 6:
-                    self.todo.append(Agent.Action.TURN_RIGHT)
-                elif twd == 12:
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                twd = 9
-            elif ny > y:
-                if twd == 3:
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                elif twd == 6:
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                elif twd == 9:
-                    self.todo.append(Agent.Action.TURN_RIGHT)
-                twd = 12
+        t = self.toward
+        for (nx, ny, nt) in path:
+            if nx != x or ny != y:
+                self.todo.append(Agent.Action.FORWARD)
+
             else:
-                if twd == 3:
+                if (t == 3 and nt == 6) \
+                    or (t == 6 and nt == 9) \
+                    or (t == 9 and nt == 12) \
+                    or (t == 12 and nt == 3):
                     self.todo.append(Agent.Action.TURN_RIGHT)
-                if twd == 9:
+                elif abs(t - nt) == 6:
+                    self.todo.append(Agent.Action.TURN_RIGHT)
+                    self.todo.append(Agent.Action.TURN_RIGHT)
+                elif (t == 6 and nt == 3) \
+                    or (t == 9 and nt == 6) \
+                    or (t == 12 and nt == 9) \
+                    or (t == 3 and nt == 12):
                     self.todo.append(Agent.Action.TURN_LEFT)
-                if twd == 12:
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                    self.todo.append(Agent.Action.TURN_LEFT)
-                twd = 6
-                
-            self.todo.append(Agent.Action.FORWARD)
-            (x, y) = (nx, ny)
+                else:
+                    print("[err] turn wrong!")
+                    exit()
+
+            (x, y, t) = (nx, ny, nt)
 
         # print("path = ", path, "action = ", self.todo)
         (self.x, self.y) = des
-        self.toward = twd
+        self.toward = t
 
     def pstate(self):
         print("state:", self.x, ",", self.y, self.toward)
@@ -169,22 +169,22 @@ class MyAI (Agent):
             return Agent.Action.GRAB
 
         if bump:
-            self.danger.add((self.x, self.y))
+            self.bound.add((self.x, self.y))
             if self.toward == 3:
                 for i in range(10):
-                    self.danger.add((self.x, i))
+                    self.bound.add((self.x, i))
                 self.x -= 1
             elif self.toward == 6:
                 for i in range(10):
-                    self.danger.add((i, self.y))
+                    self.bound.add((i, self.y))
                 self.y += 1
             elif self.toward == 9:
                 for i in range(10):
-                    self.danger.add((self.x, i))
+                    self.bound.add((self.x, i))
                 self.x += 1
             else:
                 for i in range(10):
-                    self.danger.add((i, self.y))
+                    self.bound.add((i, self.y))
                 self.y -= 1
         
         # dfs
@@ -207,15 +207,13 @@ class MyAI (Agent):
                         self.danger.add(i)
                 else:
                     self.safe.add(i)
-                    # if i not in self.stack and i not in self.visited:
-                    if i not in self.visited:
+                    if i not in self.visited and i not in self.bound:
                         self.stack.append(i)
 
-        
 
         while len(self.stack) > 0:
             n = self.stack.pop()
-            if n not in self.visited and (n not in self.danger or n in self.safe):
+            if n not in self.visited and (n not in self.danger or n in self.safe) and n not in self.bound:
                 self.goTo(n)
                 # self.pstate()
                 return self.todo.popleft()
