@@ -64,9 +64,10 @@ class MyAI (Agent):
                 ar.append((x - 1, y))
             if y > 0:
                 ar.append((x, y - 1))
-            ar.append((x + 1, y))
-            ar.append((x, y + 1))
-
+            if y < 6:
+                ar.append((x, y + 1))
+            if x < 6:
+                ar.append((x + 1, y))
             for i in ar:
                 if (i in self.visited or i in self.safe) and i not in vis and i not in que:
                     que.append(i)
@@ -93,25 +94,42 @@ class MyAI (Agent):
         twd = self.toward
         for (nx, ny) in path:
             if nx > x:
-                while twd != 3:
+                if twd == 6:
                     self.todo.append(Agent.Action.TURN_LEFT)
-                    twd -= 3
+                elif twd == 9:
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                elif twd == 12:
+                    self.todo.append(Agent.Action.TURN_RIGHT)
+                twd = 3
             elif nx < x:
-                while twd != 9:
+                if twd == 3:
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                elif twd == 6:
                     self.todo.append(Agent.Action.TURN_RIGHT)
-                    twd += 3
-                    if twd > 12:
-                        twd = 3
+                elif twd == 12:
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                twd = 9
             elif ny > y:
-                while twd != 12:
+                if twd == 3:
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                elif twd == 6:
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                elif twd == 9:
                     self.todo.append(Agent.Action.TURN_RIGHT)
-                    twd += 3
+                twd = 12
             else:
-                while twd != 6:
+                if twd == 3:
                     self.todo.append(Agent.Action.TURN_RIGHT)
-                    twd += 3
-                    if twd > 12:
-                        twd = 3
+                if twd == 9:
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                if twd == 12:
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                    self.todo.append(Agent.Action.TURN_LEFT)
+                twd = 6
+                
             self.todo.append(Agent.Action.FORWARD)
             (x, y) = (nx, ny)
 
@@ -169,6 +187,7 @@ class MyAI (Agent):
                     self.danger.add((i, self.y))
                 self.y -= 1
         
+        # dfs
         ar = []
         x = self.x
         y = self.y
@@ -176,8 +195,10 @@ class MyAI (Agent):
             ar.append((x - 1, y))
         if y > 0:
             ar.append((x, y - 1))
-        ar.append((x + 1, y))
-        ar.append((x, y + 1))
+        if y < 6:
+            ar.append((x, y + 1))
+        if x < 6:
+            ar.append((x + 1, y))
 
         for i in ar:
             if i not in self.visited:
@@ -186,7 +207,8 @@ class MyAI (Agent):
                         self.danger.add(i)
                 else:
                     self.safe.add(i)
-                    if i not in self.stack and i not in self.visited:
+                    # if i not in self.stack and i not in self.visited:
+                    if i not in self.visited:
                         self.stack.append(i)
 
         

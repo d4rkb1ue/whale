@@ -2,3 +2,5 @@
 /doc/*
 /Wumpus_World_World_Generator/Worlds/*.txt
 /*.zip
+/.vscode
+/Wumpus_World_World_Generator/**
