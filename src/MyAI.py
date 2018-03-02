@@ -34,20 +34,18 @@ class MyAI (Agent):
         self.bound = set()
         self.stack = []
 
-    def goTo(self, des):
-        '''base on where I am to find the correct way to dest,
-        push the steps in the stack'''
-        
-        # print("goTo: ", self.x, self.y, "=>", des)
-        if (self.x, self.y) == des:
-            return
+    def pathOf(self, des):
+        '''calculate the path of arriving des, not actually go'''
 
         # bfs
         que = deque()
-        vis = set()
         par = dict()
+        vis = set()
         found = False
 
+        if (self.x, self.y) == des:
+            return []
+    
         que.append((self.x, self.y, self.toward))
 
         while len(que) > 0:
@@ -105,6 +103,12 @@ class MyAI (Agent):
         path.pop()
         path.reverse()
 
+        return path
+
+
+    def goTo(self, des, path):
+        '''base on the path, push the steps(actions) in the stack'''
+        
         # construct actions
         x = self.x
         y = self.y
@@ -153,6 +157,9 @@ class MyAI (Agent):
             print(s, end=" ")
         print("")
 
+    def goHome(self):
+        self.goTo((0, 0), self.pathOf((0, 0)))
+        self.todo.append(Agent.Action.CLIMB)
 
     def getAction(self, stench, breeze, glitter, bump, scream):
         # self.pstate()
@@ -163,8 +170,7 @@ class MyAI (Agent):
             return self.todo.popleft()
 
         if glitter:
-            self.goTo((0, 0))
-            self.todo.append(Agent.Action.CLIMB)
+            self.goHome()
             # self.pstate()
             return Agent.Action.GRAB
 
@@ -187,7 +193,7 @@ class MyAI (Agent):
                     self.bound.add((i, self.y))
                 self.y -= 1
         
-        # dfs
+        # go around
         ar = []
         x = self.x
         y = self.y
@@ -210,16 +216,27 @@ class MyAI (Agent):
                     if i not in self.visited and i not in self.bound:
                         self.stack.append(i)
 
+        # filter
+        fstack = []
+        for s in self.stack:
+            if s not in self.visited and (s not in self.danger or s in self.safe) and s not in self.bound:
+                fstack.append(s)
 
-        while len(self.stack) > 0:
-            n = self.stack.pop()
-            if n not in self.visited and (n not in self.danger or n in self.safe) and n not in self.bound:
-                self.goTo(n)
-                # self.pstate()
-                return self.todo.popleft()
+        self.stack = fstack
 
-        if len(self.stack) == 0:
-            self.goTo((0, 0))
-            self.todo.append(Agent.Action.CLIMB)
+        # found the nearest
+        if len(self.stack) > 0:
+            path = self.pathOf(self.stack[0])
+            dest = self.stack[0]
+            for nx in self.stack:
+                dpath = self.pathOf(nx)
+                if len(dpath) < len(path):
+                    path = dpath
+                    dest = nx
+            self.goTo(dest, path)
+            return self.todo.popleft()
+            
+        else:
+            self.goHome()
             # self.pstate()
             return self.todo.popleft()
